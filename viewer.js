@@ -20,7 +20,7 @@
   var L = window.PrintLayout;
   function $(id) { return document.getElementById(id); }
 
-  var stage = $('stage'), world = $('world'), scene = $('scene'), bookEl = $('book');
+  var stage = $('stage'), lens = $('lens'), world = $('world'), scene = $('scene'), bookEl = $('book');
   var readout = $('readout'), pos = $('pos');
 
   // Asking the system for less motion skips the animations; dragging still follows your hand.
@@ -28,6 +28,7 @@
   var TURN_MS = CALM ? 0 : 560, FOLD_MS = CALM ? 0 : 1400, VIEW_MS = CALM ? 0 : 500;
   var DRAG_START_PX = 8, DEG_PER_PX = 0.25;
   var GAP = 1.6, MAX_LAYERS = 10;   // px between stacked sheets; most sheets drawn per pile
+  var ZOOM_STOPS = [50, 75, 100, 125, 150, 200, 250, 300, 400];   // % the zoom buttons step through
 
   var job = null, settings = null, book = null, leaves = [];
   var view = freshView();
@@ -43,6 +44,7 @@
       sheet: 0,        // the sheet on top of the stack; sheets before it are turned over
       hinges: [],      // which way each turned sheet was turned: 'L', 'R', 'T' or 'B'
       frame: { cx: 0, cy: 0, zoom: 1 },
+      zoom: 100,       // your own zoom in %, on top of the framing; 100 = everything in view
       leaf: 0, lastTurn: null
     };
   }
@@ -143,7 +145,7 @@
     var R = qmat(view.q), ex = [R[0][0], R[1][0]], ey = [R[0][1], R[1][1]];
     var det = ex[0] * ey[1] - ey[0] * ex[1];
     if (Math.abs(det) < 0.08) return null;
-    var z = view.mode === 'flat' ? view.frame.zoom : 1;
+    var z = (view.mode === 'flat' ? view.frame.zoom : 1) * view.zoom / 100;
     return { x: (dx * ey[1] - dy * ey[0]) / det / z, y: (ex[0] * dy - ex[1] * dx) / det / z };
   }
 
@@ -152,8 +154,9 @@
   // perspective rather than from the element under the pointer, which
   // browsers report unreliably for 3D-transformed elements.
   function toPlane(clientX, clientY) {
-    var sr = stage.getBoundingClientRect(), P = parseFloat(getComputedStyle(stage).perspective) || 1400;
-    var x = clientX - (sr.left + sr.width / 2), y = clientY - (sr.top + sr.height / 2);
+    var sr = stage.getBoundingClientRect(), P = parseFloat(getComputedStyle(lens).perspective) || 1400;
+    var zoom = view.zoom / 100;   // the zoom scales the finished picture around the stage's centre
+    var x = (clientX - (sr.left + sr.width / 2)) / zoom, y = (clientY - (sr.top + sr.height / 2)) / zoom;
     var R = qmat(view.q), n = [R[0][2], R[1][2], R[2][2]];
     var den = n[0] * x + n[1] * y - n[2] * P;
     if (Math.abs(n[2]) < 0.05 || Math.abs(den) < 1e-6) return null;
@@ -774,9 +777,35 @@
   }
 
   function resetPosition() {
+    setZoom(100);
     if (!ready()) return;
     moveView(homeView(), VIEW_MS);
   }
+
+  // Your own zoom, from the bar under the preview. It enlarges the finished 3D
+  // picture around the middle of the stage, like zooming a camera lens.
+  function setZoom(pct) {
+    pct = clamp(Math.round(pct) || 100, ZOOM_STOPS[0], ZOOM_STOPS[ZOOM_STOPS.length - 1]);
+    view.zoom = pct;
+    lens.style.transform = pct === 100 ? '' : 'scale(' + pct / 100 + ')';
+    $('zoom').value = pct;
+    $('zoom').setAttribute('aria-valuetext', pct + '%');
+    $('zoomPct').textContent = pct + '%';
+    $('zoomOut').disabled = pct <= ZOOM_STOPS[0];
+    $('zoomIn').disabled = pct >= ZOOM_STOPS[ZOOM_STOPS.length - 1];
+    $('zoomFit').disabled = pct === 100;
+  }
+  function stepZoom(dir) {
+    var stops = dir > 0 ? ZOOM_STOPS : ZOOM_STOPS.slice().reverse();
+    var next = stops.filter(function (s) { return dir > 0 ? s > view.zoom : s < view.zoom; })[0];
+    if (next) setZoom(next);
+  }
+  if (!CALM) lens.style.transition = 'transform .15s ease-out';
+  $('zoom').addEventListener('input', function () { setZoom(+$('zoom').value); });
+  $('zoomIn').addEventListener('click', function () { stepZoom(1); });
+  $('zoomOut').addEventListener('click', function () { stepZoom(-1); });
+  $('zoomFit').addEventListener('click', function () { setZoom(100); });
+  setZoom(100);
 
   // Straight on to whichever side is facing you now.
   function lookStraight() {
@@ -812,6 +841,9 @@
     var keys = { ArrowRight: 1, ArrowLeft: -1 };
     if (e.key in keys) { go(keys[e.key]); e.preventDefault(); }
     if (e.key === 'ArrowUp' && ready() && view.mode === 'flat') { turnPage(hingeTowards(0, -1), 0); e.preventDefault(); }
+    if (e.key === '+' || e.key === '=') { stepZoom(1); e.preventDefault(); }
+    if (e.key === '-' || e.key === '_') { stepZoom(-1); e.preventDefault(); }
+    if (e.key === '0') { setZoom(100); e.preventDefault(); }
     if (e.key === 'ArrowDown') { go(-1); e.preventDefault(); }
   });
 
@@ -973,7 +1005,7 @@
       if (busy) setTimeout(function () { if (!busy) render(); }, FOLD_MS + 60);
       else render();
     },
-    reset: function () { view = freshView(); },
+    reset: function () { view = freshView(); setZoom(100); },
     first: backToStart,
     grabAt: grabAt
   };
