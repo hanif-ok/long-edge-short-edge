@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flip on Long Edge or Short Edge? 3D Print Layout Simulator</title>
+<meta name="description" content="Free simulator for Adobe Reader print settings. Turn printed sheets over in 3D to see if double-sided, booklet, poster or n-up pages come out upside down.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#1f3f7a">
+<link rel="canonical" href="https://long-edge-short-edge.hanifok.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Long Edge, Short Edge">
+<meta property="og:url" content="https://long-edge-short-edge.hanifok.com/">
+<meta property="og:title" content="Flip on Long Edge or Short Edge? 3D Print Layout Simulator">
+<meta property="og:description" content="Set up Adobe Reader's Print window, then pick up the printed sheets in 3D to see which page ends up where and which way up.">
+<meta property="og:image" content="https://long-edge-short-edge.hanifok.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A stack of printed sheets in 3D, with the top sheet being turned over like a book page.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Long Edge, Short Edge",
+  "alternateName": "Flip on Long Edge or Short Edge?",
+  "url": "https://long-edge-short-edge.hanifok.com/"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Long Edge, Short Edge",
+  "url": "https://long-edge-short-edge.hanifok.com/",
+  "image": "https://long-edge-short-edge.hanifok.com/og-image.jpg",
+  "creator": { "@type": "Person", "name": "Hanif Omar Kertapati", "url": "https://hanifok.com/" },
+  "description": "A free simulator for Adobe Reader's print settings. It shows in 3D how double-sided, multiple pages per sheet, booklet and poster printing come out, and whether pages end up upside down.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "featureList": [
+    "Flip on long edge and flip on short edge, shown in 3D",
+    "Multiple pages per sheet with every page order",
+    "Booklet printing, including folding the sheets into a booklet",
+    "Poster tiling with overlap, cut marks and labels",
+    "Works with your own PDF, which never leaves your computer"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Should I choose flip on long edge or flip on short edge?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It depends on how the sheet reads and how people will turn it. For portrait pages turned sideways like a book, choose flip on long edge. For landscape pages turned sideways, choose flip on short edge. For landscape pages flipped top over bottom like a wall calendar, choose flip on long edge." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why is the back of my landscape printout upside down?",
+      "acceptedAnswer": { "@type": "Answer", "text": "On a landscape sheet the long edges are the top and bottom, so flip on long edge prints the back for turning the sheet top over bottom. If you turn it sideways instead, the back is upside down. Choose flip on short edge if people will turn the pages sideways." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which flip setting do I need for 2 pages per sheet?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Two pages per sheet puts two portrait pages side by side on a landscape sheet, so choose flip on short edge if the sheets will be turned sideways. The same usually applies to 6 pages per sheet. With 4, 9 or 16 pages per sheet the sheet usually stays portrait, so flip on long edge is right." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I print a booklet in Adobe Reader?",
+      "acceptedAnswer": { "@type": "Answer", "text": "In the Print window, choose Booklet under Page Sizing & Handling, set Booklet subset to Both sides and Binding to Left (or Right for right-to-left languages). Reader puts the pages in folding order and adds blank pages to make a multiple of four. Fold the stack in half and staple along the fold. If the backs come out upside down, set your printer's own two-sided setting to flip on the short edge." }
+    }
+  ]
+}
+</script>
+<style>
+/* --- outside the preview: only what a phone needs --- */
+input, select { max-width: 100%; }
+button[aria-pressed="true"] { font-weight: bold; border-style: inset; }
+@media (max-width: 700px) {
+  table.win, table.win > tbody, table.win > tbody > tr, table.win > tbody > tr > td { display: block; width: auto !important; }
+  button { min-height: 28px; margin: 2px 0; }
+}
+
+/* --- the preview --- */
+#stage {
+  position: relative; height: min(72vh, 600px, 125vw); min-height: 320px;
+  background: radial-gradient(circle at 50% 40%, #f4f1ea, #b8b2a5); border: 1px solid #8a8070; overflow: hidden;
+  perspective: 1400px; touch-action: none; cursor: grab;
+  user-select: none; -webkit-user-select: none;
+}
+#stage:focus { outline: 2px dotted #000; outline-offset: 2px; }
+#stage.dragging { cursor: grabbing !important; }
+#hint { position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; background: rgba(255,255,255,.8); font: 12px Arial, sans-serif; color: #2b261c; pointer-events: none; }
+#empty { position: absolute; left: 0; right: 0; top: 45%; text-align: center; font: 16px Arial, sans-serif; color: #4d4639; }
+/* 3D scene: #world (your view, any rotation) > #scene (stack + turned piles), or #book */
+#world, #scene, #book, .foldwrap { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+#world { left: 50%; top: 50%; }
+.sheet3d { position: absolute; transform-style: preserve-3d; }
+.sheet3d .front { transform: translateZ(0.5px); }
+.sheet3d .back { transform: rotateY(180deg) translateZ(0.5px); }
+.sheet3d .layer { backface-visibility: visible; -webkit-backface-visibility: visible; }
+.face {
+  position: absolute; left: 0; top: 0; background: #fff; overflow: hidden;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  box-shadow: 0 0 0 1px #d4d4d4;
+}
+.leaf .verso { transform: rotateY(180deg); }
+.pg.real { background: #fff; }
+.pdfimg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+.pdftag {
+  position: absolute; left: 3%; top: 2%; padding: 0 .35em; border-radius: 2px;
+  background: rgba(13,42,77,.82); color: #fff; font-family: Arial, sans-serif; font-weight: bold; pointer-events: none;
+}
+.pg[data-wait]::after { content: attr(data-wait); position: absolute; left: 0; right: 0; top: 45%; text-align: center; color: #767676; font: 11px Arial, sans-serif; }
+.content { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+#stage.gray .content { filter: grayscale(1); }
+#stage.ink .content { filter: opacity(.5); }
+#stage.gray.ink .content { filter: grayscale(1) opacity(.5); }
+.side {
+  position: absolute; right: 8px; font-family: Arial, sans-serif;
+  color: #767676; letter-spacing: .05em; pointer-events: none;
+}
+.blankside { position: absolute; left: 0; right: 0; top: 46%; text-align: center; font: 13px Arial, sans-serif; color: #767676; }
+.clip { position: absolute; overflow: hidden; }
+.pg {
+  position: absolute; overflow: hidden; font-family: Arial, sans-serif; color: #111;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M10 4 15 12H5z' fill='%23e3eaf5'/%3E%3C/svg%3E");
+  box-shadow: 0 0 0 1px #e2e2e2;
+}
+.pg.bordered { box-shadow: 0 0 0 1px #000; }
+.pg.blankpg { background: #fff; color: #767676; display: flex; align-items: center; justify-content: center; }
+.band { background: #b9d4f3; color: #0d2a4d; text-align: center; white-space: nowrap; overflow: hidden; font-weight: bold; }
+.num { position: absolute; left: 0; right: 0; top: 24%; text-align: center; font-weight: bold; line-height: 1; }
+.txt {
+  position: absolute; left: 12%; right: 12%; bottom: 9%; height: 24%; opacity: .55;
+  background: repeating-linear-gradient(#888 0 1px, transparent 1px 20%);
+}
+.note { position: absolute; right: 7%; top: 13%; width: 15%; height: 11%; background: #ffe36a; border: 1px solid #c9a800; }
+.stamp { position: absolute; left: 8%; top: 13%; color: #c00; border: 2px solid #c00; padding: 0 .2em; font-weight: bold; transform: rotate(-12deg); }
+.field { position: absolute; left: 12%; right: 12%; bottom: 36%; height: 7%; border: 1px solid #2a5bd7; background: #eef3ff; }
+.formsonly .band, .formsonly .num, .formsonly .txt { opacity: .15; }
+.cut { position: absolute; border: 0 solid #000; }
+.lbl { position: absolute; white-space: nowrap; color: #333; font-family: Arial, sans-serif; }
+.leaf { position: absolute; transform-style: preserve-3d; }
+.foldhalf { position: absolute; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+#readout div { margin: 2px 0; }
+.ok { color: #06700f; }
+.warn { color: #a85a00; }
+.bad { color: #b00000; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>Flip on long edge or short edge? See how your printout comes out</h1>
+<p>
+Double-sided printing, several pages per sheet, booklets and posters often come out with pages
+upside down or in the wrong order. Set the options below the way you would in Adobe Reader's
+<b>Print</b> window. The preview underneath shows the paper that comes out of the printer.
+Pick it up with your mouse or finger and turn it over to see which page ends up where, and which way up.
+</p>
+</header>
+
+<main>
+
+<h2 id="settings">1. Set up the print</h2>
+
+<form id="f" onsubmit="return false">
+
+<fieldset>
+<legend>Example document (the PDF you are printing)</legend>
+<label for="docPages">Number of pages:</label>
+<button type="button" class="pgstep" data-step="-1" aria-label="One page fewer">&minus;</button>
+<input id="docPages" type="number" min="1" max="200" value="8" size="4">
+<button type="button" class="pgstep" data-step="1" aria-label="One page more">+</button>
+&nbsp;
+<label>Page shape:
+<select id="docShape">
+<option value="portrait" selected>Portrait (tall)</option>
+<option value="landscape">Landscape (wide)</option>
+<option value="mixed">Mixed (odd pages tall, even pages wide)</option>
+</select></label>
+&nbsp;
+<label>Page size:
+<select id="docSize">
+<option value="same" selected>Same as the paper</option>
+<option value="smaller">Smaller than the paper (like A5)</option>
+<option value="larger">Larger than the paper (like A3)</option>
+</select></label>
+&nbsp;
+<label>Page you are on: <input id="docCurrent" type="number" min="1" max="8" value="1" size="4"></label>
+<p>
+<label>Or use your own PDF: <input id="pdfFile" type="file" accept="application/pdf,.pdf"></label>
+<button type="button" id="pdfClear" hidden>Use the example instead</button>
+<br><small id="pdfStatus">You can also drop a PDF anywhere on this page. It stays on your computer and is never uploaded.</small>
+</p>
+</fieldset>
+
+<p><small>Below is a simplified copy of Adobe Reader's Print window. Set it up the way you would before printing.</small></p>
+
+<table class="win" border="1" cellpadding="8" cellspacing="0" width="100%">
+<tr>
+<td colspan="2" bgcolor="#1f3f7a"><font color="#ffffff"><b>Print</b></font></td>
+</tr>
+<tr>
+<td valign="top">
+
+<label>Printer:
+<select id="printer">
+<option>Office Printer (two-sided)</option>
+<option>Microsoft Print to PDF</option>
+</select></label>
+<button type="button" disabled>Properties</button>
+<button type="button" disabled>Advanced</button>
+<br><br>
+<label>Copies: <input id="copies" type="number" min="1" max="20" value="1" size="3"></label>
+&nbsp;
+<label><input id="grayscale" type="checkbox"> Print in grayscale (black and white)</label>
+&nbsp;
+<label><input id="saveInk" type="checkbox"> Save ink/toner</label>
+
+<fieldset>
+<legend>Pages to Print</legend>
+<label><input type="radio" name="range" value="all" checked> All</label><br>
+<label><input type="radio" name="range" value="current"> Current page</label><br>
+<label><input type="radio" name="range" value="pages"> Pages</label>
+<input id="rangePages" type="text" value="1 - 8" size="12" aria-label="Pages to print, for example 1-3, 6">
+<details>
+<summary>More Options</summary>
+<label>Odd or Even Pages:
+<select id="oddEven">
+<option value="all" selected>All pages in range</option>
+<option value="odd">Odd pages only</option>
+<option value="even">Even pages only</option>
+</select></label><br>
+<label><input id="reverse" type="checkbox"> Reverse pages</label>
+</details>
+</fieldset>
+
+<fieldset>
+<legend>Page Sizing &amp; Handling</legend>
+<button type="button" data-sizing="size" aria-pressed="true">Size</button>
+<button type="button" data-sizing="poster" aria-pressed="false">Poster</button>
+<button type="button" data-sizing="multiple" aria-pressed="false">Multiple</button>
+<button type="button" data-sizing="booklet" aria-pressed="false">Booklet</button>
+
+<div id="panel-size">
+<p>
+<label><input type="radio" name="sizeMode" value="fit" checked> Fit</label><br>
+<label><input type="radio" name="sizeMode" value="actual"> Actual size</label><br>
+<label><input type="radio" name="sizeMode" value="shrink"> Shrink oversized pages</label><br>
+<label><input type="radio" name="sizeMode" value="custom"> Custom Scale:</label>
+<input id="customScale" type="number" min="1" max="999" value="100" size="4" aria-label="Custom scale in percent"> %<br>
+<label><input id="paperSource" type="checkbox"> Choose paper source by PDF page size</label>
+</p>
+</div>
+
+<div id="panel-poster" hidden>
+<p>
+<label>Tile Scale: <input id="tileScale" type="number" min="1" max="1000" value="100" size="4"> %</label><br>
+<label>Overlap: <input id="overlap" type="number" min="0" max="5" step="0.25" value="0" size="4"> in</label><br>
+<label><input id="cutMarks" type="checkbox"> Cut marks</label>
+&nbsp;
+<label><input id="labels" type="checkbox"> Labels</label><br>
+<label><input id="onlyLarge" type="checkbox"> Tile only large pages</label>
+</p>
+</div>
+
+<div id="panel-multiple" hidden>
+<p>
+<label>Pages per sheet:
+<select id="perSheet">
+<option value="2" selected>2</option>
+<option value="4">4</option>
+<option value="6">6</option>
+<option value="9">9</option>
+<option value="16">16</option>
+<option value="custom">Custom...</option>
+</select></label>
+<input id="customCols" type="number" min="1" max="10" value="2" size="2" aria-label="Pages across">
+by
+<input id="customRows" type="number" min="1" max="10" value="2" size="2" aria-label="Pages down"><br>
+<label>Page order:
+<select id="pageOrder">
+<option value="h" selected>Horizontal</option>
+<option value="hr">Horizontal Reversed</option>
+<option value="v">Vertical</option>
+<option value="vr">Vertical Reversed</option>
+</select></label><br>
+<label><input id="border" type="checkbox"> Print page border</label><br>
+<label><input id="nupRotate" type="checkbox" checked> Auto-rotate pages</label>
+</p>
+</div>
+
+<div id="panel-booklet" hidden>
+<p>
+<label>Booklet subset:
+<select id="subset">
+<option value="both" selected>Both sides</option>
+<option value="front">Front side only</option>
+<option value="back">Back side only</option>
+</select></label><br>
+Sheets from <input id="bookFrom" type="number" min="1" value="1" size="3" aria-label="First sheet">
+to <input id="bookTo" type="number" min="1" value="2" size="3" aria-label="Last sheet"><br>
+<label>Binding:
+<select id="binding">
+<option value="left" selected>Left</option>
+<option value="right">Right</option>
+<option value="leftTall">Left (Tall)</option>
+<option value="rightTall">Right (Tall)</option>
+</select></label><br>
+<label><input id="bookRotate" type="checkbox" checked> Auto-rotate pages within each sheet</label>
+</p>
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Orientation:</legend>
+<label><input type="radio" name="orient" value="auto" checked> Auto portrait/landscape</label><br>
+<label><input type="radio" name="orient" value="portrait"> Portrait</label><br>
+<label><input type="radio" name="orient" value="landscape"> Landscape</label>
+</fieldset>
+
+<p>
+<label><input id="duplex" type="checkbox"> Print on both sides of paper</label><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<label><input type="radio" name="flip" value="long" checked> Flip on long edge</label><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<label><input type="radio" name="flip" value="short"> Flip on short edge</label>
+<br><small id="duplexNote"></small>
+</p>
+
+</td>
+<td valign="top" width="34%">
+
+<label>Comments &amp; Forms<br>
+<select id="comments">
+<option value="markups" selected>Document and Markups</option>
+<option value="document">Document</option>
+<option value="forms">Form fields only</option>
+<option value="stamps">Document and Stamps</option>
+</select></label>
+<br>
+<button type="button" disabled>Summarize Comments</button>
+<hr>
+Scale: <b id="infoScale">94%</b><br>
+<label>Paper: <select id="paper">
+<option value="a4" selected>A4</option>
+<option value="letter">Letter</option>
+<option value="legal">Legal</option>
+</select></label>
+<span id="infoInches">8.27 x 11.69 Inches</span><br>
+Sheets of paper: <b id="infoSheets">8</b><br>
+<span id="infoSides">Printed on one side</span>
+<p><a href="#preview">The interactive preview is below this window &darr;</a></p>
+
+</td>
+</tr>
+<tr>
+<td colspan="2">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td><button type="button" id="pageSetup">Page Setup...</button></td>
+<td align="right"><button type="button" id="printBtn">Print</button> <button type="button" disabled>Cancel</button></td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+
+</form>
+
+<hr>
+
+<h2 id="preview">2. Pick up the printed paper</h2>
+<p>
+The printed sheets lie in a stack. Drag <b>the top sheet</b> to turn it over:
+left or right turns it like a book page, up or down turns it like a calendar page.
+It lands beside the stack with its back facing up, and the next sheet appears. Drag it back to undo.
+Drag <b>anywhere outside the paper</b> to rotate the whole view, in any direction and all the way around.
+The text under the preview tells you which pages you are looking at and which way up they are.
+</p>
+<p>
+<label for="docPages2"><b>Number of pages in the document:</b></label>
+<button type="button" class="pgstep" data-step="-1" aria-label="One page fewer">&minus;</button>
+<input id="docPages2" type="number" min="1" max="200" value="8" size="4">
+<button type="button" class="pgstep" data-step="1" aria-label="One page more">+</button>
+</p>
+
+<div id="stage" tabindex="0" aria-label="3D preview of the printed paper. Use the buttons below, or the left and right arrow keys, to move between sheets.">
+<div id="world">
+<div id="scene"></div>
+<div id="book" hidden></div>
+</div>
+<div id="empty" hidden>Nothing to print with these settings.</div>
+<div id="hint"></div>
+</div>
+<noscript><p><b>The preview needs JavaScript.</b> Turn it on in your browser to see the printed sheets. The help below works without it.</p></noscript>
+
+<div id="readout" aria-live="polite"></div>
+
+<p>
+<button type="button" id="prev">&#9664; Turn back</button>
+<b id="pos">Sheet 1 of 8</b>
+<button type="button" id="next">Next page &#9654;</button>
+<button type="button" id="fold" hidden>Fold into a booklet</button>
+<label id="bindingPick" hidden>&nbsp; <b>Binding:</b>
+<select id="binding2">
+<option value="left" selected>Left</option>
+<option value="right">Right</option>
+<option value="leftTall">Left (Tall)</option>
+<option value="rightTall">Right (Tall)</option>
+</select></label>
+</p>
+<p>
+<button type="button" id="turnBook">Turn the page &harr; (like a book)</button>
+<button type="button" id="turnCal">Turn the page &varr; (like a calendar)</button>
+<button type="button" id="rotL">Rotate &#10226; 90&deg;</button>
+<button type="button" id="rotR">Rotate &#10227; 90&deg;</button>
+<button type="button" id="otherSide">Spin around to the other side</button>
+<button type="button" id="straight">Look straight at it</button>
+</p>
+<p>
+<b>Reset:</b>
+<button type="button" id="resetPage">Back to page 1</button>
+<button type="button" id="resetPos">Reset position</button>
+<button type="button" id="resetAll">Reset to defaults</button>
+</p>
+
+<hr>
+
+<section id="help">
+<h2>Long edge or short edge: which one do I need?</h2>
+<p>
+<i>Flip on long edge</i> and <i>Flip on short edge</i> name an edge of the paper, not a direction.
+The printer prints the back so that it reads the right way up after you turn the sheet over that edge.
+Which way that is depends on how you hold the sheet:
+</p>
+<ul>
+<li><b>Portrait (tall) sheet:</b> the long edges are the left and right sides, so flipping on the long edge means turning it sideways, like a book.</li>
+<li><b>Landscape (wide) sheet:</b> the long edges are the top and bottom, so flipping on the long edge means turning it top over bottom, like a wall calendar.</li>
+</ul>
+<p>Turn a sheet over the other edge and its back comes out exactly upside down.</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<caption>Which flip setting to choose</caption>
+<tr><th>How the sheet reads</th><th>How people will turn it</th><th>Choose</th></tr>
+<tr><td>Portrait</td><td>Sideways, like a book</td><td>Flip on long edge</td></tr>
+<tr><td>Portrait</td><td>Top over bottom, like a notepad</td><td>Flip on short edge</td></tr>
+<tr><td>Landscape</td><td>Sideways, like a book</td><td>Flip on short edge</td></tr>
+<tr><td>Landscape</td><td>Top over bottom, like a calendar or flip chart</td><td>Flip on long edge</td></tr>
+<tr><td>2 pages per sheet (the sheet becomes landscape)</td><td>Sideways</td><td>Flip on short edge</td></tr>
+<tr><td>Booklet</td><td>Sideways</td><td>Reader sets it for you</td></tr>
+</table>
+
+<h3>Why is the back of my landscape printout upside down?</h3>
+<p>
+On a landscape sheet the long edges are the top and bottom, so <i>Flip on long edge</i> prints the back
+for turning the sheet top over bottom. Turn it sideways instead and the back is upside down.
+Choose <i>Flip on short edge</i> if people will turn the pages sideways.
+To see it for yourself, set Page shape to Landscape above, tick <i>Print on both sides of paper</i>,
+then drag the top sheet left and compare with dragging it up.
+</p>
+
+<h3>Which flip setting do I need for 2 pages per sheet?</h3>
+<p>
+Two pages per sheet puts two portrait pages side by side on a landscape sheet, so choose
+<i>Flip on short edge</i> if the sheets will be turned sideways. The same usually applies to 6 pages per sheet.
+With 4, 9 or 16 pages per sheet the sheet usually stays portrait, so <i>Flip on long edge</i> is right.
+</p>
+
+<h3>How do I print a booklet in Adobe Reader?</h3>
+<p>
+In the Print window, choose <i>Booklet</i> under Page Sizing &amp; Handling, set <i>Booklet subset</i> to Both sides
+and <i>Binding</i> to Left (or Right for right-to-left languages). Reader puts the pages in folding order and adds
+blank pages to make a multiple of four. Fold the stack in half and staple along the fold.
+<i>Fold into a booklet</i> in the preview shows the result. If the backs come out upside down,
+set your printer's own two-sided setting to flip on the short edge.
+</p>
+
+<h3>What do Size, Poster, Multiple and Booklet do?</h3>
+<ul>
+<li><b>Size:</b> one page per sheet, scaled with Fit, Actual size, Shrink oversized pages or a custom percentage.</li>
+<li><b>Poster:</b> one large page split across several sheets that you tape together, with optional overlap, cut marks and labels.</li>
+<li><b>Multiple:</b> several pages on each sheet (2, 4, 6, 9, 16 or your own grid), in the page order you pick.</li>
+<li><b>Booklet:</b> pages arranged so the printed sheets can be folded into a booklet.</li>
+</ul>
+
+<h3>Can I try it with my own PDF?</h3>
+<p>
+Yes. Choose a file next to <i>Or use your own PDF</i> at the top, or drop it anywhere on this page.
+Your PDF is opened inside your browser and never uploaded.
+</p>
+</section>
+
+</main>
+
+<hr>
+<footer>
+<p><small><b>About this simulation</b></small></p>
+<ul>
+<li><small>Each sheet is drawn the way you would hold it to read the front. Your printer may feed the paper in a different direction.</small></li>
+<li><small>Your printer driver (the Properties button in Reader) has its own two-sided setting. If it disagrees with Reader's, the driver often wins.</small></li>
+<li><small>Pages that <i>Auto portrait/landscape</i> or <i>Auto-rotate</i> turn sideways are drawn turned a quarter turn counterclockwise. Some printers turn them the other way.</small></li>
+<li><small>For booklets, Reader picks the flip edge itself, so the two-sided setting is grayed out. Posters are shown printed on one side only.</small></li>
+<li><small>The printer is assumed to leave a 1/4 inch (6.35 mm) blank border on every side.</small></li>
+<li><small>Your own PDF is drawn by PDF.js (Mozilla, Apache License 2.0). Each page gets a small tag with its number and an arrow pointing to its top.</small></li>
+</ul>
+<p><small>Made by <a href="https://hanifok.com/">Hanif Omar Kertapati</a>.
+The source code is on <a href="https://github.com/hanif-ok/long-edge-short-edge">GitHub</a>.</small></p>
+<p><small>Adobe, Acrobat and Adobe Reader are trademarks of Adobe Inc. This site is not affiliated with or endorsed by Adobe.</small></p>
+</footer>
+
+<script src="layout.js"></script>
+<script src="pdfdoc.js"></script>
+<script src="viewer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

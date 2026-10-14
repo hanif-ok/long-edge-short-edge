@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://long-edge-short-edge.hanifok.com/sitemap.xml
