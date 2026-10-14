@@ -55,6 +55,8 @@
       if (m) { a = m[1] ? +m[1] : 1; b = m[2] ? +m[2] : max; }
       else if (/^\d+$/.test(part)) { a = b = +part; }
       else return;
+      // numbers past the end of the document are skipped; a range keeps the part that exists
+      if (Math.max(a, b) < 1 || Math.min(a, b) > max) return;
       a = clamp(a, 1, max);
       b = clamp(b, 1, max);
       var step = a <= b ? 1 : -1;
@@ -382,10 +384,19 @@
       });
     }
 
-    var first = null;
+    var first = null, scaleMin = Infinity, scaleMax = -Infinity;
     sheets.some(function (sh) {
       first = sh.front.items.concat(sh.back.items).filter(function (it) { return it.type === 'page'; })[0];
       return !!first;
+    });
+    // pages of different shapes or sizes can each print at their own scale
+    sheets.forEach(function (sh) {
+      sh.front.items.concat(sh.back.items).forEach(function (it) {
+        if (it.type !== 'page' || it.page == null) return;
+        var pct = Math.round(it.scale * 100);
+        if (pct < scaleMin) scaleMin = pct;
+        if (pct > scaleMax) scaleMax = pct;
+      });
     });
 
     return {
@@ -395,7 +406,8 @@
       sizing: s.sizing,
       duplex: !!s.duplex && (s.sizing === 'size' || s.sizing === 'multiple'),
       bookletTotal: bookletTotal,
-      scalePct: first ? Math.round(first.scale * 100) : 100
+      scalePct: first ? Math.round(first.scale * 100) : 100,
+      scaleRange: scaleMin <= scaleMax ? [scaleMin, scaleMax] : null
     };
   }
 

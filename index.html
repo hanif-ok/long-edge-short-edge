@@ -58,7 +58,7 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "Should I choose flip on long edge or flip on short edge?",
+      "name": "Long edge or short edge: which one do I need?",
       "acceptedAnswer": { "@type": "Answer", "text": "It depends on how the sheet reads and how people will turn it. For portrait pages turned sideways like a book, choose flip on long edge. For landscape pages turned sideways, choose flip on short edge. For landscape pages flipped top over bottom like a wall calendar, choose flip on long edge." }
     },
     {
@@ -86,6 +86,8 @@ button[aria-pressed="true"] { font-weight: bold; border-style: inset; }
 @media (max-width: 700px) {
   table.win, table.win > tbody, table.win > tbody > tr, table.win > tbody > tr > td { display: block; width: auto !important; }
   button { min-height: 28px; margin: 2px 0; }
+  select { min-height: 28px; }
+  input[type="radio"], input[type="checkbox"] { width: 20px; height: 20px; vertical-align: middle; }
 }
 
 /* --- the preview --- */
@@ -392,7 +394,7 @@ The text under the preview tells you which pages you are looking at and which wa
 <button type="button" class="pgstep" data-step="1" aria-label="One page more">+</button>
 </p>
 
-<div id="stage" tabindex="0" aria-label="3D preview of the printed paper. Use the buttons below, or the left and right arrow keys, to move between sheets.">
+<div id="stage" tabindex="0" role="application" aria-label="3D preview of the printed paper. Use the buttons below, or the left and right arrow keys, to move between sheets.">
 <div id="world">
 <div id="scene"></div>
 <div id="book" hidden></div>
@@ -495,6 +497,8 @@ set your printer's own two-sided setting to flip on the short edge.
 <p>
 Yes. Choose a file next to <i>Or use your own PDF</i> at the top, or drop it anywhere on this page.
 Your PDF is opened inside your browser and never uploaded.
+Its comments and form fields are either all shown or all hidden (choose <i>Document</i> to hide them),
+so use the example document to see what each <i>Comments &amp; Forms</i> choice does.
 </p>
 </section>
 
@@ -507,7 +511,8 @@ Your PDF is opened inside your browser and never uploaded.
 <li><small>Each sheet is drawn the way you would hold it to read the front. Your printer may feed the paper in a different direction.</small></li>
 <li><small>Your printer driver (the Properties button in Reader) has its own two-sided setting. If it disagrees with Reader's, the driver often wins.</small></li>
 <li><small>Pages that <i>Auto portrait/landscape</i> or <i>Auto-rotate</i> turn sideways are drawn turned a quarter turn counterclockwise. Some printers turn them the other way.</small></li>
-<li><small>For booklets, Reader picks the flip edge itself, so the two-sided setting is grayed out. Posters are shown printed on one side only.</small></li>
+<li><small>For booklets, Reader picks the flip edge itself (the short edge, or the long edge for the Tall bindings), so the two-sided setting is grayed out. Posters are shown printed on one side only.</small></li>
+<li><small>With your own PDF, comments and form fields are either all shown or all hidden. The example document shows each <i>Comments &amp; Forms</i> choice.</small></li>
 <li><small>The printer is assumed to leave a 1/4 inch (6.35 mm) blank border on every side.</small></li>
 <li><small>Your own PDF is drawn by PDF.js (Mozilla, Apache License 2.0). Each page gets a small tag with its number and an arrow pointing to its top.</small></li>
 </ul>

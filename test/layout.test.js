@@ -122,6 +122,16 @@ assert.strictEqual(job.sheets.length, 2);
 // page ranges
 assert.deepStrictEqual(L.parseRange('1-3, 6', 8), [1, 2, 3, 6]);
 assert.deepStrictEqual(L.parseRange('7-', 8), [7, 8]);
+assert.deepStrictEqual(L.parseRange('0', 8), []);
+assert.deepStrictEqual(L.parseRange('99', 8), []);
+assert.deepStrictEqual(L.parseRange('2-99', 8), [2, 3, 4, 5, 6, 7, 8]);
+assert.deepStrictEqual(L.parseRange('3, 12-15', 8), [3]);
+
+// pages that print at different scales are reported as a range
+job = L.compute(settings({ doc: { pages: 4, shape: 'mixed', size: 'same', current: 1 }, orientation: 'portrait' }));
+assert.deepStrictEqual(job.scaleRange, [66, 94]);
+job = L.compute(settings({}));
+assert.deepStrictEqual(job.scaleRange, [94, 94]);
 assert.deepStrictEqual(L.pageSequence(settings({ range: { mode: 'pages', pages: '1-3, 6', oddEven: 'odd', reverse: true } })), [3, 1]);
 assert.deepStrictEqual(L.pageSequence(settings({ range: { mode: 'current' }, doc: { current: 5 } })), [5]);
 

@@ -1,6 +1,6 @@
 /*
  * Connects the pseudo Print window to the layout model and the preview.
- * Greys out options the same way Reader does and fills in the summary column.
+ * Grays out options the same way Reader does and fills in the summary column.
  */
 (function () {
   'use strict';
@@ -62,6 +62,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('.pgstep'), function (b) { b.disabled = own; });
     $('pdfClear').hidden = !own;
     $('docCurrent').max = s.doc.pages;
+    // a box you are not typing in shows what is actually used
+    if ($('docCurrent') !== document.activeElement && +$('docCurrent').value > s.doc.pages) $('docCurrent').value = s.doc.pages;
     $('rangePages').disabled = s.range.mode !== 'pages';
     if (s.range.mode !== 'pages') $('rangePages').value = '1 - ' + s.doc.pages;
     $('customScale').disabled = s.size.mode !== 'custom';
@@ -72,11 +74,14 @@
     $('bindingPick').hidden = sizing !== 'booklet' || !job.sheets.length;
     $('binding2').value = s.booklet.binding;
     $('duplexNote').textContent = sizing === 'booklet'
-      ? '(Booklets always print on both sides, and Reader picks the flip edge itself.)'
-      : sizing === 'poster' ? '(Not shown for posters: each poster piece is printed on one side.)' : '';
+      ? '(Booklets always print on both sides. Reader picks the flip edge itself: the short edge, or the long edge for the Tall bindings.)'
+      : sizing === 'poster' ? '(Posters are shown printed on one side only.)' : '';
     if (job.bookletTotal) {
       $('bookFrom').max = $('bookTo').max = job.bookletTotal;
       if (!bookToTouched) $('bookTo').value = job.bookletTotal;
+      [$('bookFrom'), $('bookTo')].forEach(function (box) {
+        if (box !== document.activeElement && +box.value > job.bookletTotal) box.value = job.bookletTotal;
+      });
     }
     all('[data-sizing]').forEach(function (b) {
       var on = b.getAttribute('data-sizing') === sizing;
@@ -87,7 +92,8 @@
 
   function summary(s, job) {
     var p = PrintLayout.PAPERS[s.paper];
-    $('infoScale').textContent = job.scalePct + '%';
+    var range = job.scaleRange;
+    $('infoScale').textContent = range && range[0] !== range[1] ? range[0] + '–' + range[1] + '%' : job.scalePct + '%';
     $('infoInches').textContent = (p.w / 25.4).toFixed(2) + ' x ' + (p.h / 25.4).toFixed(2) + ' Inches';
     $('infoSheets').textContent = job.sheets.length + (s.copies > 1 && job.perCopy ? ' (' + job.perCopy + ' per copy)' : '');
     var sides;
@@ -120,6 +126,20 @@
 
   form.addEventListener('input', schedule);
   form.addEventListener('change', schedule);
+  // When you leave a number box, it snaps to the number actually used: a blank box
+  // goes back to its default, and a value out of range to the nearest one allowed.
+  form.addEventListener('change', function (e) {
+    var box = e.target;
+    if (box.type !== 'number') return;
+    var v = parseFloat(box.value), lo = parseFloat(box.min), hi = parseFloat(box.max);
+    if (isNaN(v)) v = box.id === 'bookTo' && !isNaN(hi) ? hi : parseFloat(box.defaultValue);
+    if (!isNaN(lo) && v < lo) v = lo;
+    if (!isNaN(hi) && v > hi) v = hi;
+    if (box.value === '' || +box.value !== v) box.value = v;
+    // booklet sheets "from" can't be past "to"
+    if (box.id === 'bookFrom' && +$('bookTo').value < v) { $('bookTo').value = v; bookToTouched = true; }
+    if (box.id === 'bookTo' && +$('bookFrom').value > v) $('bookFrom').value = v;
+  });
   $('bookTo').addEventListener('input', function () { bookToTouched = true; });
   all('[data-sizing]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -163,25 +183,32 @@
     PdfDoc.open(file).then(function (info) {
       if (my !== opening) return;
       if (pagesBeforePdf === null) pagesBeforePdf = $('docPages').value;
-      pdfStatus('Showing ' + info.name + ': ' + info.pages + (info.pages === 1 ? ' page' : ' pages') +
-        ' at their real size. The file stays on your computer.');
+      pdfStatus('Showing ' + info.name + ': ' + (info.pages === 1 ? '1 page at its' : info.pages + ' pages at their') +
+        ' real size. The file stays on your computer.');
       update();
       PrintViewer.first();
     }).catch(function (err) {
       if (my !== opening) return;
+      // opening a file closed the one before it, so the example is back
+      restorePageCount();
+      $('pdfFile').value = '';
       pdfStatus(err && err.name === 'PasswordException'
-        ? file.name + ' is password-protected, so it can’t be shown.'
-        : 'Couldn’t open ' + file.name + ' (' + (err && err.message || err) + ').');
+        ? file.name + " is password-protected, so it can't be shown."
+        : "Couldn't open " + file.name + ' (' + String(err && err.message || err).replace(/\.$/, '') + ').');
       update();
     });
+  }
+
+  function restorePageCount() {
+    if (pagesBeforePdf !== null) $('docPages').value = pagesBeforePdf;
+    pagesBeforePdf = null;
   }
 
   function useExample() {
     opening++;
     PdfDoc.close();
     $('pdfFile').value = '';
-    if (pagesBeforePdf !== null) $('docPages').value = pagesBeforePdf;
-    pagesBeforePdf = null;
+    restorePageCount();
     pdfStatus(pdfHelp);
   }
 

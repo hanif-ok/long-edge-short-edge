@@ -23,7 +23,9 @@
   var stage = $('stage'), world = $('world'), scene = $('scene'), bookEl = $('book');
   var readout = $('readout'), pos = $('pos');
 
-  var TURN_MS = 560, FOLD_MS = 1400, VIEW_MS = 500;
+  // Asking the system for less motion skips the animations; dragging still follows your hand.
+  var CALM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var TURN_MS = CALM ? 0 : 560, FOLD_MS = CALM ? 0 : 1400, VIEW_MS = CALM ? 0 : 500;
   var DRAG_START_PX = 8, DEG_PER_PX = 0.25;
   var GAP = 1.6, MAX_LAYERS = 10;   // px between stacked sheets; most sheets drawn per pile
 
@@ -628,9 +630,9 @@
     var wrong = pages.some(function (it) { return pageStatus(held, sh.back, it).cls !== 'ok'; });
     var edge = hingeEdge(lt.hinge, sh.frame);
     if (!wrong || !sh.turnEdge || edge === sh.turnEdge) return null;
-    if (sh.booklet) return 'booklet sheets are printed to be turned over the ' + sh.turnEdge + ' edge. Try turning it the other way.';
-    return 'this sheet was printed to be turned over the ' + sh.turnEdge + ' edge, but you turned it over the ' + edge +
-      ' edge. Turn it the other way instead, or choose “Flip on ' + edge + ' edge” if your readers will turn it like this.';
+    if (sh.booklet) return 'Booklet sheets are printed to be turned over the ' + sh.turnEdge + ' edge. Try turning it the other way.';
+    return 'This sheet was printed to be turned over the ' + sh.turnEdge + ' edge, but you turned it over the ' + edge +
+      ' edge. Turn it the other way instead, or choose "Flip on ' + edge + ' edge" if your readers will turn it like this.';
   }
 
   function flatReadout() {
@@ -672,7 +674,7 @@
     if (tip) lines.push('<span class="warn">Tip: ' + tip + '</span>');
     readout.innerHTML = lines.map(function (l) { return '<div>' + l + '</div>'; }).join('');
 
-    pos.textContent = s < N ? 'Sheet ' + (s + 1) + ' of ' + N : 'All ' + N + ' sheets turned';
+    pos.textContent = s < N ? 'Sheet ' + (s + 1) + ' of ' + N : N === 1 ? 'The sheet is turned' : 'All ' + N + ' sheets turned';
     $('prev').innerHTML = '&#9664; Turn back';
     $('next').innerHTML = 'Next page &#9654;';
     $('prev').disabled = s === 0;
@@ -912,7 +914,8 @@
 
   function endDrag(e) {
     if (!drag || e.pointerId !== drag.id) return;
-    var d = drag, released = e.type === 'pointerup', speed = d.speed || 0;
+    // a flick only counts if the pointer was still moving when it let go
+    var d = drag, released = e.type === 'pointerup', speed = d.t && performance.now() - d.t < 80 ? d.speed || 0 : 0;
     drag = null;
     stage.classList.remove('dragging');
     if (d.kind === 'turn') {
